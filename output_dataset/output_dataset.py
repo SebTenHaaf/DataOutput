@@ -3,6 +3,7 @@ import json
 import qcodes as qc
 import os
 import proplot as pplt
+import numpy as np
 from matplotlib.ticker import AutoMinorLocator
 
 from typing import List, Tuple, Dict
@@ -55,6 +56,7 @@ def load_dictionary(filename:str = filename_params)->dict:
 				        'minorticks':2,
 				        'majorticks':2,
 				        'add_colorbars': True,
+				        'set_title':True,
 				    },
 				    'colorbar':{
 				        'length': 0.8,
@@ -134,15 +136,19 @@ def save_params(dictionary:dict)->None:
 	save_dictionary(dictionary,file_path)
 	param_verbose.update(load_dictionary(filename_params))
 
-def construct_label(param_key: str)->str:
+def construct_label(param_key: str, add_unit: bool=True)->str:
 	"""
 		Construct the label for a certain parameter
 		by combining its verbose name and its unit
 
 		Args:
 			param_key (string): the dictionary key value of the parmater to load
+			add_unit (bool)
 	"""
-	return  f"{parameter_info(param_key)['verbose_name']} ({parameter_info(param_key)['unit']})"
+	if add_unit:
+		return  f"{parameter_info(param_key)['verbose_name']} ({parameter_info(param_key)['unit']})"
+	else:
+		return f"{parameter_info(param_key)['verbose_name']}"
 
 def reformat_dataset(dataset)-> xr.Dataset:
 	"""
@@ -222,8 +228,11 @@ def update_config(config_category:str,config_key:str,new_value):
 			new_value (any): new values to store. Must be Json serializable
 	"""
 	if config_key in configs[config_category].keys():
-		configs[config_category][config_key] = new_value
-		save_configs(configs)
+		print(f"Updating known setting")
+	else:
+		print(f"Creating new setting")
+	configs[config_category][config_key] = new_value
+	save_configs(configs)
 
 def update_parameter(param_key:str, verbose_name:Optional[str] = None, scale:Optional[int] = 1,unit:Optional[str] = None ):
 	"""
@@ -272,7 +281,11 @@ def handle_plot(data_array: xr.DataArray,ax:pplt.axes.Axes):
 			data_array (xr.DataArray): DataArray object to be plotted
 			ax (matplot.Axes): axis object in which the data should be plotted
 	"""
-	dim = len(data_array.coords)
+	coords = list(data_array.coords)
+	len_coords = [data_array[key].values.size > 1 for key in coords ]
+
+	dim = np.sum(len_coords)
+
 	## Set the minor ticks to the default config 
 	ax.xaxis.set_minor_locator(AutoMinorLocator(configs['figs']['minorticks']))
 	ax.yaxis.set_minor_locator(AutoMinorLocator(configs['figs']['minorticks']))
@@ -339,8 +352,15 @@ def auto_plot(datasets: list[xr.Dataset]):
 	## When receiving multiple datasets with multiple vars,
 	## create multiple figures recursively by calling auto_plot for each dataset
 	if n_datasets > 1 and any(n > 1 for n in n_datavars):
+		plot_output = {
+			'fig':[],
+			'axs':[],
+		}
 		for dataset in datasets:
-			auto_plot([dataset])
+			sub_output = auto_plot([dataset])
+			plot_output['fig'].append(sub_output['fig'])
+			plot_output['axs'].append(sub_output['axs'])
+		return plot_output
 
 	## Multiple datasets with each 1 variable: create a single figure
 	## with an axis per dataset
@@ -351,7 +371,13 @@ def auto_plot(datasets: list[xr.Dataset]):
 		for idx,dset in enumerate(datasets):
 			handle_plot(dset[list(dset.data_vars)[0]],ax=axs[idx])
 			title += f'{dset.run_id},'
-		fig.format(suptitle = title[:-1])
+		if configs['figs']['set_title']:
+			fig.format(suptitle = title[:-1])
+		plot_output = {
+			'fig': [fig],
+			'axs': [axs],
+		}
+		return plot_output
 
 	## A single dataset with multiple varibales: create a single figure
 	## with an axis per data variable
@@ -359,10 +385,17 @@ def auto_plot(datasets: list[xr.Dataset]):
 		dataset = datasets[0]
 		n_axs = n_datavars[0]
 		fig,axs = construct_auto_fig(n_axs)
-		fig.format(suptitle = f'Dataset {dataset.run_id}')
+		if configs['figs']['set_title']:
+			fig.format(suptitle = f'Dataset {dataset.run_id}')
 
 		for idx,var in enumerate(dataset.data_vars):
 			handle_plot(dataset[var],ax = axs[idx])
+
+		plot_output = {
+			'fig': [fig],
+			'axs': [axs],
+		}
+		return plot_output
                    
 def output_dataset(datas:list[Union[int,xr.Dataset]],data_keys:Optional[list[list[str]]]=None, plot_func:Optional[Callable]=None,  plot: bool=True, reformat:bool=True, process_funcs:Optional[list[Callable]] = [],)->list[xr.Dataset]:
 	"""
@@ -389,7 +422,7 @@ def output_dataset(datas:list[Union[int,xr.Dataset]],data_keys:Optional[list[lis
 	message = "Data must be supplied as run_ids (int) to load, or as xarray datasets"
 	assert all([isinstance(data,(int,xr.Dataset)) for data in datas]), message
 
-
+	output = {}
     ### Extracting the relevant data into array
 	datasets = []
 	### Duplicate data_keys if needed for correct shape and assert typing
@@ -402,7 +435,7 @@ def output_dataset(datas:list[Union[int,xr.Dataset]],data_keys:Optional[list[lis
 		for data_inner in data_keys:
 			assert all([isinstance(data_string,str) for data_string in data_inner]), message
 
-    ### Loop over the run_ids and get the data is given by data_keys	
+    ### Loop over the run_ids and get the data as given by data_keys	
 	for data_idx,data in enumerate(datas):
 		if isinstance(data, int):
 			dataset = load_data(data)
@@ -434,29 +467,32 @@ def output_dataset(datas:list[Union[int,xr.Dataset]],data_keys:Optional[list[lis
 			datasets = func(datasets)
 		except Exception as e:
 			print(f"Error while running {func}: {e}")
-			return
+			return output
+
+	output['datasets'] = datasets # add datasets to the output
 
 	if plot:      
 		## If a plotting function has been provided, pass all the datasets there
 		if plot_func is not None:
-			output = plot_func(datasets)
 			try:
-				output = plot_func(datasets)
+				plot_output = plot_func(datasets)
+				output['plots'] = plot_output
 				return output
 			except Exception as e:
 				print(f"Unable to plot the data: {e}")
-				return
+				return output
     
         ## If a plotting function has not been provided, pass the datasets
         ## to the default autoplot function
 		else:
 			## Pass along the figure and axs (whether they or provided or not)
 			try:
-				output = auto_plot(datasets)
+				plot_output = auto_plot(datasets)
+				output['plots'] = plot_output
 				return output
 			except Exception as e:
 				print(f"Unable to automatically plot your data: {e}")
-				return 
-	return datasets
+				raise
+	return output
 
 	
