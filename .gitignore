@@ -44,7 +44,7 @@ MANIFEST
 *.json
 
 ### The formatting functions
-
+output_dataset/plotting_functions.py
 
 ### Testing and coverage reports
 htmlcov/
