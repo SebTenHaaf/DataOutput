@@ -46,6 +46,10 @@ MANIFEST
 ### The formatting functions
 output_dataset/plotting_functions.py
 
+### Extra files that should not be pushed except for the original
+*.db
+*.ipynb
+
 ### Testing and coverage reports
 htmlcov/
 .tox/
