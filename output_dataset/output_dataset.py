@@ -325,7 +325,8 @@ def construct_auto_fig(N:int):
 
 	figwidth = N*configs['figs']['col_width'] if N<max_cols else max_cols*configs['figs']['col_width'] 
 	figheight = total_rows*configs['figs']['row_height']
-	fig,axs = pplt.subplots(array,figwidth = figwidth, figheight = figheight, grid=False,sharex=False,sharey=False)
+	fig,axs = pplt.subplots(array,figwidth = figwidth, figheight = figheight, grid=False,sharex=False,sharey=False,tight=True,pad=0.5)
+
 	return fig,axs
 
 
