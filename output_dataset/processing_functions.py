@@ -4,6 +4,9 @@ from typing import List, Tuple, Dict
 from typing import Optional, Union,Callable
 
 
+def reverse_coords(coords):
+    return list(reversed(list(coords)))
+    
 def transpose(datasets:list[xr.Dataset])->list[xr.Dataset]:
     """
         Transpose the data variables using xarrays
@@ -62,15 +65,21 @@ def select_data(datasets:list[xr.Dataset], sel_dict)->list[xr.Dataset]:
         Returns:
             list of xarray datasets with reduced dimensionality
     """
+    method = 'nearest'
+    for key in sel_dict:
+        if isinstance(sel_dict[key], slice):
+            method = None
+    
     new_datasets = []
     for dataset in datasets:
-        new_dataset = dataset.sel(sel_dict, method = 'nearest')
+        new_dataset = dataset.sel(sel_dict, method = method)
         new_datasets.append(new_dataset)
     return new_datasets
 
 
 def centre_axis(values:list):
     return values - (values[0]+values[-1])/2
+
 
 
 def adjust_axis(datasets:list[xr.Dataset], mapping:Callable, adjust:Optional[int] = 'all')->list[xr.Dataset]:
@@ -88,9 +97,9 @@ def adjust_axis(datasets:list[xr.Dataset], mapping:Callable, adjust:Optional[int
     new_datasets = []
     for dataset in datasets:
         if adjust == 'all':
-            data_coords = list(reversed(list(dataset.coords)))
+            data_coords = reverse_coords(dataset.coords)
         else:
-            data_coords = np.array(list(reversed(list(dataset.coords))))[adjust]
+            data_coords = np.array(reverse_coords(dataset.coords))[adjust]
         
         new_coord_dict = {}
         for coord_key in data_coords:
