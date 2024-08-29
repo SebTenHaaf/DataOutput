@@ -83,6 +83,14 @@ def load_dictionary(filename:str = filename_params)->dict:
 param_verbose = load_dictionary(filename_params)
 configs = load_dictionary(filename_config)
 
+def load_xarray_snapshot(ds):
+	"""
+		In conversion from qcodes to xarray the snapshot 
+		containg all parameter and instrument info is converted to a string
+		Need this function to convert it back to a dictionary
+	"""
+	return json.loads('{' + ds.snapshot[1:-1] + '}')
+
 def load_data(run_id:int)->xr.Dataset:
 	"""
 		Loads a dataset from a QCoDeS database and converts it to 
@@ -234,7 +242,7 @@ def update_config(config_category:str,config_key:str,new_value):
 	configs[config_category][config_key] = new_value
 	save_configs(configs)
 
-def update_parameter(param_key:str, verbose_name:Optional[str] = None, scale:Optional[int] = 1,unit:Optional[str] = None ):
+def update_parameter(param_key:str, verbose_name:Optional[str] = None, scale:Optional[int] = None,unit:Optional[str] = None ):
 	"""
 		Update a parameter in the verbose_params dictionary and save to the 
 		json file
@@ -250,12 +258,16 @@ def update_parameter(param_key:str, verbose_name:Optional[str] = None, scale:Opt
 			print(f"Updating known parameter: {param_key}")
 			if verbose_name is None:
 				verbose_name = param_verbose[param_key]['verbose_name']
+			if scale is None:
+				scale = param_verbose[param_key]['scale']
 			if unit is None:
 				unit = param_verbose[param_key]['unit']
 		else:
 			print(f"Adding new parameter: {param_key}")
 			if verbose_name is None:
 				verbose_name = param_key
+			if scale is None:
+				scale = 1
 			if unit is None:
 				unit = '-'
 		info = {

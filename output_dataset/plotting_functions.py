@@ -53,7 +53,6 @@ def plot_lines(datasets,**kwargs):
                         xdata = ds[key].values
                 ydata = ds[list(ds.data_vars)[0]].values
                 
-
                 popt,pcov = curve_fit(fitting[0], xdata,ydata,**fitting[1])
                 fit_range = np.linspace(xdata[0],xdata[-1], num = 10*len(xdata))
                 lfit, = axs.plot(fit_range, fitting[0](fit_range,*popt), **fitting[2])
@@ -66,18 +65,19 @@ def plot_lines(datasets,**kwargs):
 
 
 
-def remove_inner_ticks(axs):
+def remove_inner_ticks(axs, rem_y = True,rem_x=True):
     ncols = axs.gridspec.ncols
     nrows = axs.gridspec.nrows
     for i in range(nrows):
         for j in range(ncols):
-            if j != 0:
-                axs[i,j].format(ylocator = [],yminorlocator = [])
-                axs[i,j].format(ylabel = '')
-
-            if i != nrows-1:
-                axs[i,j].format(xlocator = [],xminorlocator = [])
-                axs[i,j].format(xlabel = '')
+            if rem_y:
+                if j != 0:
+                    axs[i,j].format(ylocator = [],yminorlocator = [])
+                    axs[i,j].format(ylabel = '')
+            if rem_x:
+                if i != nrows-1:
+                    axs[i,j].format(xlocator = [],xminorlocator = [])
+                    axs[i,j].format(xlabel = '')
 
 
 
@@ -165,6 +165,7 @@ def plot_colormeshes(datasets,**kwargs):
     return ims
 
 def default_colorbar(im,axs,fig, label=False,location= 'top'):
+
     if location=='top':
         cbar = axs.colorbar(im, location='top', width = 0.04, length = 0.4, align='right', locator = pplt.MaxNLocator(2), pad = -1, ticklabelsize = 6)
         cbar.set_label('')
@@ -172,10 +173,10 @@ def default_colorbar(im,axs,fig, label=False,location= 'top'):
         if label:
             fig.text(0,1.05, label, transform = axs.transAxes, fontsize = 7)
     elif location=='right':
-        cbar = axs.colorbar(im, location='right', width = 0.04, length = 0.4, align='bottom', locator = pplt.MaxNLocator(2), pad = -1, ticklabelsize = 6)
+        cbar = axs.colorbar(im, location='right', width = 0.04, length = 0.4, align='top', locator = pplt.MaxNLocator(2), pad = -1, ticklabelsize = 6)
         cbar.set_label('')
 
         if label:
-            fig.text(1,0.85, label, transform = axs.transAxes, fontsize = 7)
+            fig.text(0.85,1.05, label, transform = axs.transAxes, fontsize = 7)
 
     return cbar
