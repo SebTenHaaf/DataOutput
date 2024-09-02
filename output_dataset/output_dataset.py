@@ -307,6 +307,7 @@ def handle_plot(data_array: xr.DataArray,ax:pplt.axes.Axes):
 
 		if configs['figs']['add_colorbars']:
 			cbar = ax.colorbar(im, **{**configs['colorbar'],'locator': pplt.MaxNLocator(2)},)
+			cbar.set_label(construct_label(data_array.name))
 
 	if dim == 1:
 		ax.plot(data_array, **configs['1D'])
@@ -428,7 +429,8 @@ def auto_plot(datasets: list[xr.Dataset]):
 			fig,axs = construct_auto_fig(n_axs)
 
 			for idx,coord_val in enumerate(dataset[coords[0]].values):
-				axs[idx].format(title = f'{construct_label(coords[0])} = {np.round(coord_val,1)}',fontsize = 7)
+				coord = coords[0]
+				axs[idx].format(title = f'{parameter_info(coord)["verbose_name"]} = {np.round(coord_val,1)} ({parameter_info(coord)["unit"]})',fontsize = 7)
 				cut_dataset = dataset.sel({f'{coords[0]}':coord_val}, method = 'nearest')
 				handle_plot(cut_dataset[list(dataset.data_vars)[0]], ax = axs[idx])
 
