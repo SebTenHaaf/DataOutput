@@ -295,19 +295,23 @@ def handle_plot(data_array: xr.DataArray,ax:pplt.axes.Axes):
 	"""
 	coords = list(data_array.coords)
 	len_coords = [data_array[key].values.size > 1 for key in coords ]
-
+	filt_coords = [key for key in coords if data_array[key].values.size > 1]
 	dim = np.sum(len_coords)
-
 	## Set the minor ticks to the default config 
 	ax.xaxis.set_minor_locator(AutoMinorLocator(configs['figs']['minorticks']))
 	ax.yaxis.set_minor_locator(AutoMinorLocator(configs['figs']['minorticks']))
 	if dim == 2:
 		im = ax.pcolormesh(data_array,**configs['2D'])
+		if len(coords) > len(filt_coords):
+			ax.format(xlabel = construct_label(filt_coords[0]), ylabel = construct_label(filt_coords[1]))
+
 		if configs['figs']['add_colorbars']:
-			cbar = ax.colorbar(im, **{**configs['colorbar'],'locator': pplt.MaxNLocator(2)})
+			cbar = ax.colorbar(im, **{**configs['colorbar'],'locator': pplt.MaxNLocator(2)},)
 
 	if dim == 1:
 		ax.plot(data_array, **configs['1D'])
+
+
 
 def construct_auto_fig(N:int):
 	"""
@@ -359,8 +363,14 @@ def auto_plot(datasets: list[xr.Dataset]):
 	"""
 	n_datasets = len(datasets)
 	n_datavars = []
+	n_dims = []
 	for ds in datasets:
 		n_datavars.append(len(ds.data_vars))
+
+		coords = list(ds.coords)
+		len_coords = [ds[key].values.size > 1 for key in coords ]
+		dim = np.sum(len_coords)
+		n_dims.append(dim)
 
 	## When receiving multiple datasets with multiple vars,
 	## create multiple figures recursively by calling auto_plot for each dataset
@@ -375,9 +385,13 @@ def auto_plot(datasets: list[xr.Dataset]):
 			plot_output['axs'].append(sub_output['axs'])
 		return plot_output
 
+
 	## Multiple datasets with each 1 variable: create a single figure
 	## with an axis per dataset
 	elif n_datasets > 1:
+		if any(n > 2 for n in n_dims):
+			raise Exception("The dimensionality is too large to handle multiple datasets automatically")
+
 		n_axs = n_datasets
 		fig,axs = construct_auto_fig(n_axs)
 		title = 'Datasets '
@@ -392,17 +406,31 @@ def auto_plot(datasets: list[xr.Dataset]):
 		}
 		return plot_output
 
-	## A single dataset with multiple varibales: create a single figure
+	## A single dataset with multiple variables: create a single figure
 	## with an axis per data variable
 	else:
 		dataset = datasets[0]
-		n_axs = n_datavars[0]
-		fig,axs = construct_auto_fig(n_axs)
-		if configs['figs']['set_title']:
-			fig.format(suptitle = f'Dataset {dataset.run_id}')
+		if (n_dims[0] > 3):
+			raise Exception("Auto-plotting data with more than 3 coordinates is not supported. A custom plot_func must be provided")
+		if (n_dims[0] > 2) and (n_datavars[0] > 1):
+			raise Exception("The number of variables is too large to handle the multidimensional dataset automatically. Pass a single variable to ouput")
 
-		for idx,var in enumerate(dataset.data_vars):
-			handle_plot(dataset[var],ax = axs[idx])
+		if n_dims[0] < 3:
+			n_axs = n_datavars[0]
+			fig,axs = construct_auto_fig(n_axs)
+			if configs['figs']['set_title']:
+				fig.format(suptitle = f'Dataset {dataset.run_id}')
+
+			for idx,var in enumerate(dataset.data_vars):
+				handle_plot(dataset[var],ax = axs[idx])
+		else:
+			n_axs = len(dataset[coords[0]].values)
+			fig,axs = construct_auto_fig(n_axs)
+
+			for idx,coord_val in enumerate(dataset[coords[0]].values):
+				axs[idx].format(title = f'{construct_label(coords[0])} = {np.round(coord_val,1)}',fontsize = 7)
+				cut_dataset = dataset.sel({f'{coords[0]}':coord_val}, method = 'nearest')
+				handle_plot(cut_dataset[list(dataset.data_vars)[0]], ax = axs[idx])
 
 		plot_output = {
 			'fig': [fig],
