@@ -72,7 +72,7 @@ def get_corr_G(datasets):
     for dataset in datasets:
         data_vars = list(dataset.data_vars)
         new_da = np.sqrt(abs(dataset[data_vars[0]]*dataset[data_vars[1]]))
-        dataset['S21_correlated'] = xr.DataArray(new_da, coords = dataset.coords, attrs = dataset[data_vars[0]].attrs)
+        dataset['G_correlated'] = xr.DataArray(new_da, coords = dataset.coords, attrs = dataset[data_vars[0]].attrs)
         dataset = dataset.drop_vars(data_vars)
         new_datasets.append(dataset)
     return new_datasets
