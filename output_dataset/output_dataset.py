@@ -303,7 +303,7 @@ def handle_plot(data_array: xr.DataArray,ax:pplt.axes.Axes):
 	if dim == 2:
 		im = ax.pcolormesh(data_array,**configs['2D'])
 		if len(coords) > len(filt_coords):
-			ax.format(xlabel = construct_label(filt_coords[0]), ylabel = construct_label(filt_coords[1]))
+			ax.format(xlabel = construct_label(filt_coords[1]), ylabel = construct_label(filt_coords[0]))
 
 		if configs['figs']['add_colorbars']:
 			cbar = ax.colorbar(im, **{**configs['colorbar'],'locator': pplt.MaxNLocator(2)},)
