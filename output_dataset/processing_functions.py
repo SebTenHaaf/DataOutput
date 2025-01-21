@@ -116,7 +116,8 @@ def average_outerdim(datasets):
 def centre_axis(values:list):
     return values - (values[0]+values[-1])/2
 
-
+def shift_axis(values, value = 0):
+    return values - value
 
 def adjust_axis(datasets:list[xr.Dataset], mapping:Callable, adjust:Optional[int] = 'all')->list[xr.Dataset]:
     """
@@ -138,7 +139,7 @@ def adjust_axis(datasets:list[xr.Dataset], mapping:Callable, adjust:Optional[int
             data_coords = np.array(reverse_coords(dataset.coords))[adjust]
         
         new_coord_dict = {}
-        for coord_key in data_coords:
+        for coord_key in reversed(data_coords):
             old_coord_da= dataset[coord_key]
             old_coord_attrs = dataset[coord_key].attrs
             coord_values = old_coord_da.values
