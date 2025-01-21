@@ -95,11 +95,15 @@ def adjust_axis(datasets:list[xr.Dataset], mapping:Callable, adjust:Optional[int
         new_coord_dict = {}
         for coord_key in data_coords:
             old_coord_da= dataset[coord_key]
+            old_coord_attrs = dataset[coord_key].attrs
             coord_values = old_coord_da.values
             new_values = mapping(coord_values)
-            new_coord_dict[coord_key] = new_values
+            new_coord_dict[coord_key] = (f'{coord_key}',new_values,old_coord_attrs)
+
             #new_coord_da = xr.DataArray(new_values, coords = {f'{coord_key}':new_values}, attrs = old_coord_da.attrs)
+        old_attrs = dataset.attrs
         new_dataset = dataset.assign_coords(new_coord_dict)
+        new_dataset.attrs = old_attrs
         new_datasets.append(new_dataset)
 
     return new_datasets
