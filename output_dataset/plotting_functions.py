@@ -4,8 +4,12 @@ import numpy as np
 
 from matplotlib.ticker import AutoMinorLocator
 import matplotlib.colors as colors
+from scipy.optimize import curve_fit
 
 
+def reverse_coords(coords):
+    return list(reversed(list(coords)))
+    
 cblind_cycle = ['#E69F00','#56B4E9','#009E73','#F0E442','#0072B2','#D55E00','#CC79A7','#000000']
 ## Create a colormap using only the positive values from RdBu 
 ## for plotting e.g. local conductance and non-local conductance with same colorschemes
@@ -22,34 +26,58 @@ def plot_lines(datasets,**kwargs):
     colors=None
     if 'colors' in kwargs.keys():
         colors = kwargs.pop('colors')
+    else: ## provide default
+        colors = cblind_cycle
+
+    fitting =None
+    if 'fitting' in kwargs.keys():
+        fitting = kwargs.pop('fitting')
+
     lines = []
 
     axs.xaxis.set_minor_locator(AutoMinorLocator(2))
     axs.yaxis.set_minor_locator(AutoMinorLocator(2))
 
-    
+    plot_dict = {
+        'lines':[],
+        'fits':[],
+    }
     for ds_idx,ds in enumerate(datasets):
         if colors:
             l, = axs.plot(ds[list(ds.data_vars)[0]], **kwargs, color = colors[ds_idx])
-        else:
-            l, = axs.plot(ds[list(ds.data_vars)[0]], **kwargs,)
-        lines.append(l)
-    return lines
+            plot_dict['lines'].append(l)
+            
+            if fitting is not None:
+                for key in list(ds.coords):
+                    if ds[key].values.size >1:
+                        xdata = ds[key].values
+                ydata = ds[list(ds.data_vars)[0]].values
+                
+                popt,pcov = curve_fit(fitting[0], xdata,ydata,**fitting[1])
+                fit_range = np.linspace(xdata[0],xdata[-1], num = 10*len(xdata))
+                lfit, = axs.plot(fit_range, fitting[0](fit_range,*popt), **fitting[2])
+                plot_dict['fits'].append({
+                    'fit': lfit,
+                    'popt':popt,
+                    'pcov':pcov,
+                })
+    return plot_dict
 
 
 
-def remove_inner_ticks(axs):
+def remove_inner_ticks(axs, rem_y = True,rem_x=True):
     ncols = axs.gridspec.ncols
     nrows = axs.gridspec.nrows
     for i in range(nrows):
         for j in range(ncols):
-            if j != 0:
-                axs[i,j].format(ylocator = [],yminorlocator = [])
-                axs[i,j].format(ylabel = '')
-
-            if i != nrows-1:
-                axs[i,j].format(xlocator = [],xminorlocator = [])
-                axs[i,j].format(xlabel = '')
+            if rem_y:
+                if j != 0:
+                    axs[i,j].format(ylocator = [],yminorlocator = [])
+                    axs[i,j].format(ylabel = '')
+            if rem_x:
+                if i != nrows-1:
+                    axs[i,j].format(xlocator = [],xminorlocator = [])
+                    axs[i,j].format(xlabel = '')
 
 
 
@@ -137,6 +165,7 @@ def plot_colormeshes(datasets,**kwargs):
     return ims
 
 def default_colorbar(im,axs,fig, label=False,location= 'top'):
+
     if location=='top':
         cbar = axs.colorbar(im, location='top', width = 0.04, length = 0.4, align='right', locator = pplt.MaxNLocator(2), pad = -1, ticklabelsize = 6)
         cbar.set_label('')
@@ -144,10 +173,10 @@ def default_colorbar(im,axs,fig, label=False,location= 'top'):
         if label:
             fig.text(0,1.05, label, transform = axs.transAxes, fontsize = 7)
     elif location=='right':
-        cbar = axs.colorbar(im, location='right', width = 0.04, length = 0.4, align='bottom', locator = pplt.MaxNLocator(2), pad = -1, ticklabelsize = 6)
+        cbar = axs.colorbar(im, location='right', width = 0.04, length = 0.4, align='top', locator = pplt.MaxNLocator(2), pad = -1, ticklabelsize = 6)
         cbar.set_label('')
 
         if label:
-            fig.text(1,0.85, label, transform = axs.transAxes, fontsize = 7)
+            fig.text(0.85,1.05, label, transform = axs.transAxes, fontsize = 7)
 
     return cbar
