@@ -20,5 +20,3 @@ To get started, we suggest the following:
 5. Navigate to tutorial.ipybn
 6. See tutorial for all examples
 
-<h2> Contributing to the code </h2>
-The ultimate aim of the package is to provide general functions that make plotting and data processing faster. If you encounter an issue please raise the issue here. If you want to help improve things or have some good ideas to add, that will be much appreciated!
