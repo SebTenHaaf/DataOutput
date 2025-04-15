@@ -47,10 +47,10 @@ MANIFEST
 output_dataset/plotting_functions.py
 
 ### Extra files that should not be pushed except for the original
-*.db
-*.db-shm
-*.db-wal
-*.ipynb
+#*.db
+#*.db-shm
+#*.db-wal
+#*.ipynb
 
 ### Testing and coverage reports
 htmlcov/
