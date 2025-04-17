@@ -211,7 +211,8 @@ def autoplot(datasets: list[xr.Dataset]):
 		title = 'Datasets '
 		for idx,dset in enumerate(datasets):
 			handle_plot(dset[list(dset.data_vars)[0]],ax=axs[idx])
-			title += f'{dset.run_id},'
+			if hasattr(dset, 'run_id'):
+				title += f'{dset.run_id},'
 		if configs['figs']['set_title']:
 			fig.format(suptitle = title[:-1])
 		plot_output = {

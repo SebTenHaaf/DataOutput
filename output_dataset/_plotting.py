@@ -206,3 +206,24 @@ def colorbar(data_output, **kwargs):
         for ax in axs:
             ax.colorbar(premade_ims[axs_count],**kwargs)
             axs_count += 1
+
+
+def colorbar_default(data_output, label=True,location= 'top',h_offset=0,v_offset=1.1):
+    premade_axs = data_output.plots['axs']
+    premade_fig = data_output.plots['fig']
+    premade_ims = data_output.plots['ims']
+
+    axs_count = 0
+    for fig,axs in zip(premade_fig,premade_axs):
+        for ax in axs:
+            image = premade_ims[axs_count]
+            if location=='top':
+                cbar = ax.colorbar(image, location='top', width = 0.04, length = 0.4, align='right', locator = pplt.MaxNLocator(2), pad = -1, ticklabelsize = 7)
+                cbar.set_label('')
+                if label:
+                    fig.text(h_offset,v_offset, image._colorbar_kw['title'], transform = ax.transAxes, fontsize = 7)
+            elif location=='right':
+                cbar = ax.colorbar(image, location='right', width = 0.04, length = 0.4, align='bottom', locator = pplt.MaxNLocator(2), pad = -1, ticklabelsize = 7)
+                if label:
+                    cbar.set_label(image._colorbar_kw['title'])
+            axs_count += 1

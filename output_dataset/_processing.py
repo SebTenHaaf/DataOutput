@@ -41,13 +41,19 @@ def transpose(data_output):
         processed_data.append(dataset.transpose())
     data_output.datasets = processed_data
      
-def normalize(data_output):
+def normalize(data_output,inverse=False):
     new_datasets = []
     for dataset in data_output.datasets:
         new_dataset = dataset
         for data_var in dataset.data_vars:
-            new_dataset[data_var] -= np.min(dataset[data_var])
-            new_dataset[data_var] /= np.max(dataset[data_var])
+            if not inverse:
+                new_dataset[data_var] -= np.min(dataset[data_var])
+                new_dataset[data_var] /= np.max(dataset[data_var])
+            else:
+                new_dataset[data_var] -= np.max(dataset[data_var])
+                new_dataset[data_var] *= -1                                
+                new_dataset[data_var] /= np.max(dataset[data_var])
+
         new_datasets.append(new_dataset)
     data_output.datasets=new_datasets
 
