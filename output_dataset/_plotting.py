@@ -181,21 +181,7 @@ def pcolormesh(data_output,fig,axs,**kwargs):
         'axs':[axs],
         'ims':ims,
     }
-    
-def default_colorbar(im,axs,fig, label=False,location= 'top',h_offset=0,v_offset=1.05):
-    if location=='top':
-        cbar = axs.colorbar(im, location='top', width = 0.04, length = 0.4, align='right', locator = pplt.MaxNLocator(2), pad = -1, ticklabelsize = 6)
-        cbar.set_label('')
-    
-        if label:
-            fig.text(h_offset,v_offset, label, transform = axs.transAxes, fontsize = 7)
-    elif location=='right':
-        cbar = axs.colorbar(im, location='right', width = 0.04, length = 0.4, align='bottom', locator = pplt.MaxNLocator(2), pad = -1, ticklabelsize = 6)
 
-        if label:
-            cbar.set_label(label)
-
-    return cbar
 
 def colorbar(data_output, **kwargs):
     premade_axs = data_output.plots['axs']

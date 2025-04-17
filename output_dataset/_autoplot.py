@@ -245,7 +245,7 @@ def autoplot(datasets: list[xr.Dataset]):
 
 			for idx,coord_val in enumerate(dataset[coords[0]].values):
 				coord = coords[0]
-				axs[idx].format(title = f'{Parameter[coord].verbose_name} = {Parameter[coord].as_label()})',fontsize = 7)
+				axs[idx].format(title = f'{Parameter[coord].verbose_name} = {coord_val} ({Parameter[coord].unit})',fontsize = 7)
 				cut_dataset = dataset.sel({f'{coords[0]}':coord_val}, method = 'nearest')
 				handle_plot(cut_dataset[list(dataset.data_vars)[0]], ax = axs[idx])
 

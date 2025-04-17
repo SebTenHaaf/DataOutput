@@ -88,18 +88,35 @@ def average_outerdim(datasets):
         dataset[f'average_{data_coord}'] = xr.DataArray(output_values, coords = subset.coords, attrs = dataset[data_coord].attrs)
     return datasets
 
+
+_supported_adjustments = {
+    'centre': 'centre_axis',
+    'shift': 'shift_axis',
+    'scale': 'scale_axis',
+    'multiply': 'scale',
+}
+
+def scale_axis(values, multiply_by = 1, shift_by = 0):
+    return values * multiply_by + shift_by
+
+
 def centre_axis(values:list):
     return values - (values[0]+values[-1])/2
 
-def shift_axis(values:list, value = 0):
-    return values - value
+def shift_axis(values:list, shift_by = 0):
+    return values - shift_by
 
-_supported_adjustments = {
-    'centralize': 'centre_axis',
-    'shift': 'shift_axis',
-}
+def _handle_get_default(values:list, **kwargs):
+    """
+        Default function for axis adjustment. It returns the values unchanged.
+        Args:
+            values (list): the values to be adjusted
+        Returns:
+            list: the unchanged values
+    """
+    raise(AttributeError('No adjustment function specified. Please specify a function or a string that is supported.'))
 
-def adjust_axis(data_output, mapping:Callable|str, adjust:Optional[int] = 'all')->list[xr.Dataset]:
+def adjust_axis(data_output, mapping:Callable|str, adjust:Optional[int] = 'all',**kwargs)->list[xr.Dataset]:
     """
         Map one or more axis of datasets to new values
         Args:
@@ -126,7 +143,7 @@ def adjust_axis(data_output, mapping:Callable|str, adjust:Optional[int] = 'all')
             old_coord_da= dataset[coord_key]
             old_coord_attrs = dataset[coord_key].attrs
             coord_values = old_coord_da.values
-            new_values = mapping(coord_values)
+            new_values = mapping(coord_values,**kwargs)
             new_coord_dict[coord_key] = (f'{coord_key}',new_values,old_coord_attrs)
 
         old_attrs = dataset.attrs
