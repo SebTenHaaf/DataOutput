@@ -116,13 +116,14 @@ def _handle_get_default(values:list, **kwargs):
     """
     raise(AttributeError('No adjustment function specified. Please specify a function or a string that is supported.'))
 
-def adjust_axis(data_output, mapping:Callable|str, adjust:Optional[int] = 'all',**kwargs)->list[xr.Dataset]:
+def adjust_axis(data_output, mapping:Callable|str, adjust:Optional[int|str] = 'all',**kwargs)->list[xr.Dataset]:
     """
         Map one or more axis of datasets to new values
         Args:
             datasets (list of Datasets): the data to which the sel operation is applied
             mapping (Callable): function to which to pass the coordinate that should be adjused
-            adjust (int): optional, the axis to pass to mapping. By defauly all axis are processed
+            adjust (int|str): optional, the axis to pass to mapping. By default
+                all axis are processed. Can be either the axis index or the axis name.
         Returns:
             list of xarray datasets with new axis
     """
@@ -135,8 +136,10 @@ def adjust_axis(data_output, mapping:Callable|str, adjust:Optional[int] = 'all',
     for idx,dataset in enumerate(data_output.datasets):
         if adjust == 'all':
             data_coords = reverse_coords(dataset.coords)
+        elif isinstance(adjust, int):
+            data_coords = [reverse_coords(dataset.coords)[adjust]]
         else:
-            data_coords = np.array(reverse_coords(dataset.coords))[adjust]
+            data_coords = [dataset.coords[adjust].name]
         
         new_coord_dict = {}
         for coord_key in reversed(data_coords):
