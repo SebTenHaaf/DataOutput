@@ -41,13 +41,19 @@ def transpose(data_output):
         processed_data.append(dataset.transpose())
     data_output.datasets = processed_data
      
-def normalize(data_output):
+def normalize(data_output,inverse=False):
     new_datasets = []
     for dataset in data_output.datasets:
         new_dataset = dataset
         for data_var in dataset.data_vars:
-            new_dataset[data_var] -= np.min(dataset[data_var])
-            new_dataset[data_var] /= np.max(dataset[data_var])
+            if not inverse:
+                new_dataset[data_var] -= np.min(dataset[data_var])
+                new_dataset[data_var] /= np.max(dataset[data_var])
+            else:
+                new_dataset[data_var] -= np.max(dataset[data_var])
+                new_dataset[data_var] *= -1                                
+                new_dataset[data_var] /= np.max(dataset[data_var])
+
         new_datasets.append(new_dataset)
     data_output.datasets=new_datasets
 
@@ -82,24 +88,42 @@ def average_outerdim(datasets):
         dataset[f'average_{data_coord}'] = xr.DataArray(output_values, coords = subset.coords, attrs = dataset[data_coord].attrs)
     return datasets
 
+
+_supported_adjustments = {
+    'centre': 'centre_axis',
+    'shift': 'shift_axis',
+    'scale': 'scale_axis',
+    'multiply': 'scale',
+}
+
+def scale_axis(values, multiply_by = 1, shift_by = 0):
+    return values * multiply_by + shift_by
+
+
 def centre_axis(values:list):
     return values - (values[0]+values[-1])/2
 
-def shift_axis(values:list, value = 0):
-    return values - value
+def shift_axis(values:list, shift_by = 0):
+    return values - shift_by
 
-_supported_adjustments = {
-    'centralize': 'centre_axis',
-    'shift': 'shift_axis',
-}
+def _handle_get_default(values:list, **kwargs):
+    """
+        Default function for axis adjustment. It returns the values unchanged.
+        Args:
+            values (list): the values to be adjusted
+        Returns:
+            list: the unchanged values
+    """
+    raise(AttributeError('No adjustment function specified. Please specify a function or a string that is supported.'))
 
-def adjust_axis(data_output, mapping:Callable|str, adjust:Optional[int] = 'all')->list[xr.Dataset]:
+def adjust_axis(data_output, mapping:Callable|str, adjust:Optional[int|str] = 'all',**kwargs)->list[xr.Dataset]:
     """
         Map one or more axis of datasets to new values
         Args:
             datasets (list of Datasets): the data to which the sel operation is applied
             mapping (Callable): function to which to pass the coordinate that should be adjused
-            adjust (int): optional, the axis to pass to mapping. By defauly all axis are processed
+            adjust (int|str): optional, the axis to pass to mapping. By default
+                all axis are processed. Can be either the axis index or the axis name.
         Returns:
             list of xarray datasets with new axis
     """
@@ -112,15 +136,17 @@ def adjust_axis(data_output, mapping:Callable|str, adjust:Optional[int] = 'all')
     for idx,dataset in enumerate(data_output.datasets):
         if adjust == 'all':
             data_coords = reverse_coords(dataset.coords)
+        elif isinstance(adjust, int):
+            data_coords = [reverse_coords(dataset.coords)[adjust]]
         else:
-            data_coords = np.array(reverse_coords(dataset.coords))[adjust]
+            data_coords = [dataset.coords[adjust].name]
         
         new_coord_dict = {}
         for coord_key in reversed(data_coords):
             old_coord_da= dataset[coord_key]
             old_coord_attrs = dataset[coord_key].attrs
             coord_values = old_coord_da.values
-            new_values = mapping(coord_values)
+            new_values = mapping(coord_values,**kwargs)
             new_coord_dict[coord_key] = (f'{coord_key}',new_values,old_coord_attrs)
 
         old_attrs = dataset.attrs

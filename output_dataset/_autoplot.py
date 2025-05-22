@@ -211,7 +211,8 @@ def autoplot(datasets: list[xr.Dataset]):
 		title = 'Datasets '
 		for idx,dset in enumerate(datasets):
 			handle_plot(dset[list(dset.data_vars)[0]],ax=axs[idx])
-			title += f'{dset.run_id},'
+			if hasattr(dset, 'run_id'):
+				title += f'{dset.run_id},'
 		if configs['figs']['set_title']:
 			fig.format(suptitle = title[:-1])
 		plot_output = {
@@ -244,7 +245,7 @@ def autoplot(datasets: list[xr.Dataset]):
 
 			for idx,coord_val in enumerate(dataset[coords[0]].values):
 				coord = coords[0]
-				axs[idx].format(title = f'{Parameter[coord].verbose_name} = {Parameter[coord].as_label()})',fontsize = 7)
+				axs[idx].format(title = f'{Parameter[coord].verbose_name} = {coord_val} ({Parameter[coord].unit})',fontsize = 7)
 				cut_dataset = dataset.sel({f'{coords[0]}':coord_val}, method = 'nearest')
 				handle_plot(cut_dataset[list(dataset.data_vars)[0]], ax = axs[idx])
 
