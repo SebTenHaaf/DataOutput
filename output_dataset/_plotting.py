@@ -206,3 +206,10 @@ def colorbar(data_output, **kwargs):
         for ax in axs:
             ax.colorbar(premade_ims[axs_count],**kwargs)
             axs_count += 1
+
+
+def plot_data(data: 'DataOutput'):
+
+    datasets = data.datasets
+    for data in datasets:
+        data.scatter()

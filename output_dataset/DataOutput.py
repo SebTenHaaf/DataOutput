@@ -17,6 +17,7 @@ import _processing
 import ultraplot as pplt
 pplt.rc['colorbar.width'] = 0.05
 pplt.rc['cmap.discrete'] = False
+pplt.rc['grid'] = False
 
 
 def save_process(func):
