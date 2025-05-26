@@ -169,11 +169,23 @@ def plot(data_output,fig,axs,**kwargs):
         ax.xaxis.set_minor_locator(AutoMinorLocator(2))
         ax.yaxis.set_minor_locator(AutoMinorLocator(2))
 
+    ## Count data
+    count = 0
+    for ds in datasets:
+        count += len(ds.data_vars)
+
     lines = []
     idx = 0
     for ds in datasets:
         for data_var in ds.data_vars:
-            l, = axs[idx].plot(ds[data_var],**kwargs)
+            if count == len(axs):
+                l, = axs[idx].plot(ds[data_var],**kwargs)
+            else:
+                try:
+                    l, = axs[0].plot(ds[data_var],**kwargs)
+                except TypeError:
+                    l, = axs.plot(ds[data_var],**kwargs)
+        
             lines.append(l)
             idx+=1
     
