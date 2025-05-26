@@ -43,48 +43,7 @@ def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
         cmap(np.linspace(minval, maxval, n)))
     return new_cmap
 
-def plot_lines(datasets,**kwargs):
-    fig = kwargs.pop('fig')
-    axs = kwargs.pop('axs')
-    colors=None
-    if 'colors' in kwargs.keys():
-        colors = kwargs.pop('colors')
-    else: ## provide default
-        colors = cblind_cycle
 
-    fitting =None
-    if 'fitting' in kwargs.keys():
-        fitting = kwargs.pop('fitting')
-
-    lines = []
-
-    axs.xaxis.set_minor_locator(AutoMinorLocator(2))
-    axs.yaxis.set_minor_locator(AutoMinorLocator(2))
-
-    plot_dict = {
-        'lines':[],
-        'fits':[],
-    }
-    for ds_idx,ds in enumerate(datasets):
-        if colors:
-            l, = axs.plot(ds[list(ds.data_vars)[0]], **kwargs, color = colors[ds_idx])
-            plot_dict['lines'].append(l)
-            
-            if fitting is not None:
-                for key in list(ds.coords):
-                    if ds[key].values.size >1:
-                        xdata = ds[key].values
-                ydata = ds[list(ds.data_vars)[0]].values
-                
-                popt,pcov = curve_fit(fitting[0], xdata,ydata,**fitting[1])
-                fit_range = np.linspace(xdata[0],xdata[-1], num = 10*len(xdata))
-                lfit, = axs.plot(fit_range, fitting[0](fit_range,*popt), **fitting[2])
-                plot_dict['fits'].append({
-                    'fit': lfit,
-                    'popt':popt,
-                    'pcov':pcov,
-                })
-    return plot_dict
 
 def remove_inner_ticks(axs, rem_y = True,rem_x=True):
     ncols = axs.gridspec.ncols
@@ -158,7 +117,73 @@ def add_fig_and_axes_if_not_passed(func):
         return func(data_output,fig=fig,axs=axs, **kwargs)
     return wrapper    
 
+def plot(datasets,**kwargs):
+    fig = kwargs.pop('fig')
+    axs = kwargs.pop('axs')
+    colors=None
+    if 'colors' in kwargs.keys():
+        colors = kwargs.pop('colors')
+    else: ## provide default
+        colors = cblind_cycle
 
+    fitting =None
+    if 'fitting' in kwargs.keys():
+        fitting = kwargs.pop('fitting')
+
+    lines = []
+
+    axs.xaxis.set_minor_locator(AutoMinorLocator(2))
+    axs.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+    plot_dict = {
+        'lines':[],
+        'fits':[],
+    }
+    for ds_idx,ds in enumerate(datasets):
+        if colors:
+            l, = axs.plot(ds[list(ds.data_vars)[0]], **kwargs, color = colors[ds_idx])
+            plot_dict['lines'].append(l)
+            
+            if fitting is not None:
+                for key in list(ds.coords):
+                    if ds[key].values.size >1:
+                        xdata = ds[key].values
+                ydata = ds[list(ds.data_vars)[0]].values
+                
+                popt,pcov = curve_fit(fitting[0], xdata,ydata,**fitting[1])
+                fit_range = np.linspace(xdata[0],xdata[-1], num = 10*len(xdata))
+                lfit, = axs.plot(fit_range, fitting[0](fit_range,*popt), **fitting[2])
+                plot_dict['fits'].append({
+                    'fit': lfit,
+                    'popt':popt,
+                    'pcov':pcov,
+                })
+    return plot_dict
+
+
+@add_fig_and_axes_if_not_passed
+def plot(data_output,fig,axs,**kwargs):
+    datasets = data_output.datasets
+
+    for ax in axs:
+        ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+    lines = []
+    idx = 0
+    for ds in datasets:
+        for data_var in ds.data_vars:
+            l, = axs[idx].plot(ds[data_var],**kwargs)
+            lines.append(l)
+            idx+=1
+    
+    ## Store result
+    data_output.plots = {
+        'fig':[fig],
+        'axs':[axs],   
+        'lines':lines,
+    }
+    
 @add_fig_and_axes_if_not_passed
 def pcolormesh(data_output,fig,axs,**kwargs):
     datasets = data_output.datasets
